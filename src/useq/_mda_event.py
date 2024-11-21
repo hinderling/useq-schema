@@ -16,6 +16,8 @@ from typing import (
 
 from pydantic import Field, field_validator
 
+from numpy import ndarray
+
 from useq._actions import AcquireImage, AnyAction
 from useq._base_model import UseqModel
 
@@ -135,6 +137,12 @@ class MDAEvent(UseqModel):
         If `True`, the engine should reset the event timer to the time of this event,
         and future `min_start_time` values will be relative to this event. By default,
         `False`.
+     slm_image : numpy.ndarray | bytes | None
+         Numpy array or bytes to control an SLM device (DMD). Supported types are:
+         - 2D[h,w] np.uint8
+         - 3D[h,w,(rgb)] np.uint8
+         - char * with either w*h bytes or w*h*4 bytes (for imgRGB32)
+         By default, `None`.
     """
 
     # MappingProxyType is not subscriptable on Python 3.8
@@ -152,10 +160,24 @@ class MDAEvent(UseqModel):
     action: AnyAction = Field(default_factory=AcquireImage)
     keep_shutter_open: bool = False
     reset_event_timer: bool = False
+    slm_image: Optional[Union[ndarray, bytes]] = None
 
     @field_validator("channel", mode="before")
     def _validate_channel(cls, val: Any) -> Any:
         return Channel(config=val) if isinstance(val, str) else val
+
+    @field_validator("slm_image", mode="before")
+    def _validate_slm_image(cls, val: Any) -> Any:
+        if isinstance(val, ndarray):
+            if val.dtype != np.uint8:
+                raise ValueError(f"Invalid numpy array dtype for slm_image. Expected np.uint8, got {val.dtype}.")
+            if val.ndim == 2 or (val.ndim == 3 and val.shape[2] == 3):
+                pass
+            else:
+                raise ValueError(f"Invalid numpy array shape for slm_image. Expected 2D[h,w] or 3D[h,w,(rgb)], got {val.shape}.")
+        elif not isinstance(val, bytes):
+            raise TypeError("Invalid type for slm_image. Expected numpy.ndarray or bytes.")
+        return val
 
     if field_serializer is not None:
         _si = field_serializer("index", mode="plain")(lambda v: dict(v))
