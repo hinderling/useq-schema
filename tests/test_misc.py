@@ -141,3 +141,11 @@ def test_time_estimation_with_position_seqs(seq: useq.MDASequence) -> None:
     if not isinstance(expect, tuple):
         expect = (expect, False)
     assert _duration_exceeded(seq) == expect
+
+
+def test_arbitrary_types_numpy_array() -> None:
+    # Test if numpy array is accepted when arbitrary_types_allowed is set to True
+    relative_positions = useq.ZRelativePositions(relative=np.arange(-2.0, 2.0, 0.5))
+    assert len(relative_positions.relative) == 8
+    assert relative_positions.relative[0] == -2.0
+    assert relative_positions.relative[-1] == 1.5
