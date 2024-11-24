@@ -12,6 +12,7 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
+    Union,
 )
 
 from pydantic import Field, field_validator
