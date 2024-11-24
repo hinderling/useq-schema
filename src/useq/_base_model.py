@@ -32,6 +32,15 @@ def _non_default_repr_args(obj: BaseModel, fields: "ReprArgs") -> "ReprArgs":
         (k, val)
         for k, val in fields
         if k in obj.model_fields
+        and not (
+            isinstance(val, np.ndarray)
+            and isinstance(default := (
+                factory()
+                if (factory := obj.model_fields[k].default_factory) is not None
+                else obj.model_fields[k].default
+            ), np.ndarray)
+            and np.array_equal(val, default)
+        )
         and val
         != (
             factory()
@@ -70,6 +79,7 @@ class FrozenModel(_ReplaceableModel):
         extra="ignore",
         frozen=True,
         json_encoders={MappingProxyType: dict},
+        arbitrary_types_allowed=True,
     )
 
 
